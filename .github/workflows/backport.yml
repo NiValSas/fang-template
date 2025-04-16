@@ -41,10 +41,14 @@ jobs:
           branch: backport/develop-into-main-${{ github.run_number }}
           delete-branch: true
 
-      # 4) Enable auto‑merge on the new PR
-      - name: Enable auto‑merge on backport PR
+      # 4) Debug: show the PR number we got
+      - name: Debug PR number
+        run: echo "Created PR #${{ steps.create_pr.outputs['pull-request-number'] }}"
+
+      # 5) Enable auto-merge on that PR
+      - name: Enable auto-merge on backport PR
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
+          pull-request-number: ${{ steps.create_pr.outputs['pull-request-number'] }}
           merge-method: merge
