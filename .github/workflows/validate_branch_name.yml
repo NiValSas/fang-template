@@ -10,10 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check branch name
+      - name: Validate branch name format
         run: |
-          branch_name=$(echo "${GITHUB_REF##*/}")
-          if [[ ! "$branch_name" =~ ^(feature|fix|hotfix)\/.+ ]]; then
-            echo "Error: The branch name must start with 'feature/', 'fix/', or 'hotfix/'."
+          # For PR events, use the head ref; otherwise, strip 'refs/heads/'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            branch_name="${{ github.head_ref }}"
+          else
+            branch_name="${GITHUB_REF#refs/heads/}"
+          fi
+
+          echo "Branch name is '$branch_name'"
+
+          if [[ ! "$branch_name" =~ ^(feature|fix|hotfix)/.+ ]]; then
+            echo "Error: Branch name must start with 'feature/', 'fix/', or 'hotfix/'."
             exit 1
           fi
+
+          echo "✅ Branch name meets the required pattern."
