@@ -50,8 +50,8 @@ jobs:
       - name: Run Safety for vulnerability check
         run: safety check --full-report
 
-      - name: Upload Bandit report as artifact2
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload Bandit report as artifact
+        uses: actions/upload-artifact@v2  # Changed this line to use the correct action
         with:
           name: bandit-report
           path: bandit-report.html
