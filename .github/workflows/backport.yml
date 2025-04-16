@@ -1,47 +1,49 @@
-name: Auto Backport PR to Main
+name: Auto Backport to Main
 
 on:
   push:
     branches:
       - develop
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   backport:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout de develop con todo el historial
+      # 1) Checkout develop with full history
       - name: Checkout develop
         uses: actions/checkout@v3
         with:
           ref: develop
           fetch-depth: 0
 
-      # 2) Configurar Git para la acción de GH Actions
-      - name: Configurar Git
+      # 2) Configure Git user
+      - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # 3) Crear el Pull Request de backport
-      - name: Crear Pull Request de backport
+      # 3) Create the backport Pull Request
+      - name: Create backport Pull Request
         id: create_pr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: backport cambios de develop a main"
+          commit-message: "chore: backport changes from develop to main"
           title: "Auto Backport: develop → main"
           body: |
-            Este PR fue generado automáticamente para llevar los cambios de `develop` a `main`.
+            This pull request was created automatically to backport changes from `develop` into `main`.
           base: main
           branch: backport/develop-into-main-${{ github.run_number }}
-          draft: false
           delete-branch: true
 
-      # 4) (Opcional) Habilitar auto‑merge una vez que pase los checks
-      - name: Habilitar Auto‑Merge
-        if: ${{ steps.create_pr.outputs.pull-request-number }}
-        uses: peter-evans/enable-pull-request-automerge@v2
+      # 4) Enable auto‑merge on the new PR
+      - name: Enable auto‑merge on backport PR
+        uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
