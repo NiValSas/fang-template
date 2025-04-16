@@ -1,0 +1,45 @@
+name: Python Security Validation
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit for static security analysis
+        run: bandit -r . -f html -o bandit-report.html
+
+      - name: Install Safety
+        run: pip install safety
+
+      - name: Run Safety for vulnerability check
+        run: safety check --full-report
+
+      - name: Upload Bandit report as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bandit-report
+          path: bandit-report.html
