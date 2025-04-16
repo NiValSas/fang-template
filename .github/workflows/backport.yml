@@ -42,11 +42,12 @@ jobs:
           PR_NUMBER="${{ steps.cpr.outputs['pull-request-number'] }}"
           echo "Backport PR #${PR_NUMBER}"
 
-      # 4) Auto‑approve the PR to satisfy any review rules
+      # 4) Auto‑approve the PR (explicitly passing its number)
       - name: Auto-approve backport PR
         uses: hmarr/auto-approve-action@v4
         with:
           pull-request-number: ${{ steps.cpr.outputs['pull-request-number'] }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # 5) Enable GitHub’s Auto‑merge
       - name: Enable auto-merge on backport PR
