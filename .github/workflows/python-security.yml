@@ -56,3 +56,9 @@ jobs:
           name: bandit-report
           path: bandit-report.html
           retention-days: 1
+
+      - name: Añadir resumen de Bandit al Job summary
+        run: |
+            echo "## 🔒 Resumen de Bandit Security Scan" >> $GITHUB_STEP_SUMMARY
+            # Extraemos solo líneas relevantes del HTML (por ejemplo, las incidencias)
+            grep -A2 "<tr class=\"issue\"" bandit-report.html | sed 's/^/> /' >> $GITHUB_STEP_SUMMARY
