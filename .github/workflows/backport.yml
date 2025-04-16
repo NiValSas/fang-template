@@ -14,43 +14,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout the full repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      # … steps 1–4: checkout, configure git, create PR, debug PR number …
 
-      # 2) Configure Git for GitHub Actions
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      # 3) Create the backport Pull Request
-      - name: Create Backport Pull Request
+      - name: Create backport PR
         id: backport_pr
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: backport changes from develop to main"
           title: "Auto Backport: develop → main"
           body: |
-            This pull request was created automatically to merge the latest changes from `develop` into `main`.
+            This PR backports changes from `develop` into `main`.
           base: main
           branch: backport/develop-into-main-${{ github.run_number }}
           delete-branch: true
-          draft: false
 
-      # 4) Debug: Print out the new PR number
       - name: Debug PR number
         run: |
           PR_NUMBER="${{ steps.backport_pr.outputs['pull-request-number'] }}"
           echo "Backport PR #${PR_NUMBER}"
 
-      # 5) Enable auto‑merge on the backport PR
+      # Attempt auto‑merge (will fail if not enabled)
       - name: Enable auto‑merge on backport PR
+        if: ${{ always() }}
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.backport_pr.outputs['pull-request-number'] }}
           merge-method: merge
+
+      # Fallback: Merge with GH CLI using PAT
+      - name: Fallback: merge PR via GH CLI
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          PR_NUMBER="${{ steps.backport_pr.outputs['pull-request-number'] }}"
+          echo "Falling back to GH CLI merge for PR #${PR_NUMBER}"
+          gh pr merge $PR_NUMBER \
+            --repo ${{ github.repository }} \
+            --merge \
+            --admin
