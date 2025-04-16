@@ -50,7 +50,7 @@ jobs:
       - name: Run Safety for vulnerability check
         run: safety check --full-report
 
-      - name: Upload Bandit report as artifact
+      - name: Upload Bandit report as artifact2
         uses: actions/upload-pages-artifact@v3
         with:
           name: bandit-report
