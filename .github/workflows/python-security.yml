@@ -29,6 +29,21 @@ jobs:
       - name: Install Bandit
         run: pip install bandit
 
+      - name: Check if bandit-report.html exists
+        run: |
+            if [ -f bandit-report.html ]; then
+                echo "File exists"
+            else
+                echo "File does not exist"
+                exit 1
+            fi
+
+      - name: Archive artifact
+        run: |
+              echo ::group::Archive artifact
+              tar --create --file="$RUNNER_TEMP/artifact.tar" bandit-report.html
+              echo ::endgroup::
+          
       - name: Run Bandit for static security analysis
         run: bandit -r . -f html -o bandit-report.html
 
@@ -39,7 +54,8 @@ jobs:
         run: safety check --full-report
 
       - name: Upload Bandit report as artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v3
         with:
           name: bandit-report
-          path: bandit-report.html
+          path: reports/bandit-report.html
+          retention-days: 1
