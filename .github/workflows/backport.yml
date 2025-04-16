@@ -36,20 +36,22 @@ jobs:
           delete-branch: true
           draft: false
 
-      # 3) Debug: show the PR number in the logs
+      # 3) Debug: print the PR number
       - name: Debug PR number
-        run: echo "Backport PR #${{ steps.cpr.outputs.pull-request-number }}"
+        run: |
+          PR_NUMBER="${{ steps.cpr.outputs['pull-request-number'] }}"
+          echo "Backport PR #${PR_NUMBER}"
 
-      # 4) Auto-approve the PR to satisfy any review protection
+      # 4) Auto‑approve the PR to satisfy any review rules
       - name: Auto-approve backport PR
         uses: hmarr/auto-approve-action@v4
         with:
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          pull-request-number: ${{ steps.cpr.outputs['pull-request-number'] }}
 
-      # 5) Enable GitHub’s Auto‑merge on the PR
+      # 5) Enable GitHub’s Auto‑merge
       - name: Enable auto-merge on backport PR
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          pull-request-number: ${{ steps.cpr.outputs['pull-request-number'] }}
           merge-method: merge
