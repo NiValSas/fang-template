@@ -16,7 +16,7 @@ jobs:
     steps:
       # 1) Checkout develop with full history
       - name: Checkout develop
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           ref: develop
           fetch-depth: 0
@@ -27,16 +27,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # 3) Create the Backport PR
+      # 3) Create backport PR using create-pull-request@v7
       - name: Create backport PR
-        id: pr
+        id: create_pr
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: backport changes from develop to main"
           title: "Auto Backport: develop → main"
           body: |
-            This pull request was created automatically to backport the latest changes from `develop` into `main`.
+            This pull request was created automatically to backport changes from `develop` into `main`.
           base: main
           branch: backport/develop-into-main-${{ github.run_number }}
           delete-branch: true
@@ -45,35 +45,34 @@ jobs:
       # 4) Debug: print the new PR number
       - name: Debug PR number
         run: |
-          PR_NUMBER="${{ steps.pr.outputs.pull-request-number }}"
-          echo "Backport PR #${PR_NUMBER}"
+          echo "Backport PR #${{ steps.create_pr.outputs.pull-request-number }}"
 
-      # 5) Auto-approve the PR (satisfies review requirement)
+      # 5) Auto‑approve the PR (if your branch protection requires reviews)
       - name: Auto-approve backport PR
-        uses: peter-evans/approve-pull-request@v7
+        uses: peter-evans/approve-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.pr.outputs.pull-request-number }}
+          pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
           reviewers: github-actions[bot]
           message: "Auto‑approved for backport merge"
 
-      # 6) Enable GitHub’s Auto-merge
-      - name: Enable auto-merge on backport PR
+      # 6) Enable GitHub’s Auto‑merge
+      - name: Enable auto‑merge on backport PR
         id: auto_merge
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.pr.outputs.pull-request-number }}
+          pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
           merge-method: merge
 
-      # 7) Fallback: force-merge via GH CLI if auto-merge was blocked
+      # 7) Fallback: force-merge via GH CLI if auto‑merge was blocked
       - name: Fallback merge via GH CLI
         if: ${{ steps.auto_merge.outcome != 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          PR="${{ steps.pr.outputs.pull-request-number }}"
-          echo "Auto‑merge blocked; falling back to GH CLI merge for PR #${PR}"
+          PR="${{ steps.create_pr.outputs.pull-request-number }}"
+          echo "Auto‑merge failed; using GH CLI to merge PR #${PR}"
           gh pr merge "$PR" \
             --repo "${{ github.repository }}" \
             --merge \
