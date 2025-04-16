@@ -35,7 +35,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: backport changes from develop to main"
           title: "Auto Backport: develop → main"
-          body: >
+          body: |
             This pull request was created automatically to backport changes from `develop` into `main`.
           base: main
           branch: backport/develop-into-main-${{ github.run_number }}
@@ -43,12 +43,14 @@ jobs:
 
       # 4) Debug: print the PR number
       - name: Debug PR number
-        run: echo "Backport PR #${{ steps.backport_pr.outputs.pull-request-number }}"
+        run: |
+          PR_NUMBER="${{ steps.backport_pr.outputs['pull-request-number'] }}"
+          echo "Backport PR #${PR_NUMBER}"
 
       # 5) Enable auto‑merge on the new PR
       - name: Enable auto‑merge on backport PR
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.backport_pr.outputs.pull-request-number }}
+          pull-request-number: ${{ steps.backport_pr.outputs['pull-request-number'] }}
           merge-method: merge
