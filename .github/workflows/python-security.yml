@@ -29,6 +29,9 @@ jobs:
       - name: Install Bandit
         run: pip install bandit
 
+      - name: Run Bandit for static security analysis
+        run: bandit -r . -f html -o bandit-report.html
+
       - name: Check if bandit-report.html exists
         run: |
             if [ -f bandit-report.html ]; then
@@ -43,9 +46,6 @@ jobs:
               echo ::group::Archive artifact
               tar --create --file="$RUNNER_TEMP/artifact.tar" bandit-report.html
               echo ::endgroup::
-          
-      - name: Run Bandit for static security analysis
-        run: bandit -r . -f html -o bandit-report.html
 
       - name: Install Safety
         run: pip install safety
@@ -54,8 +54,8 @@ jobs:
         run: safety check --full-report
 
       - name: Upload Bandit report as artifact
-        uses:  actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v3
         with:
           name: bandit-report
-          path: reports/bandit-report.html
+          path: bandit-report.html
           retention-days: 1
