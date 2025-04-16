@@ -1,76 +1,32 @@
-name: Auto Backport to Main
+name: Sync develop into main
 
 on:
   push:
     branches:
       - develop
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
-  backport:
+  sync-main:
     runs-on: ubuntu-latest
-
     steps:
-      # 1) Checkout develop with full history
-      - name: Checkout develop
+      # 1) Checkout the full repo (develop by default)
+      - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: develop
-          fetch-depth: 0
+          fetch-depth: 0    # grab all history so we can merge
 
-      # 2) Create (or update) the backport PR
-      - name: Create backport PR
-        id: create_pr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GH_PAT }}              # ← Your PAT with repo scope
-          commit-message: "chore: backport changes from develop to main"
-          title: "Backport develop → main"
-          body: |
-            This pull request was created automatically to backport changes from `develop` into `main`.
-          base: main
-          branch: backport/develop-into-main-${{ github.run_number }}
-          delete-branch: true
-          draft: false
-
-      # 3) Debug: print the PR number
-      - name: Debug PR number
+      # 2) Configure Git so pushes work
+      - name: Configure Git
         run: |
-          PR="${{ steps.create_pr.outputs['pull-request-number'] }}"
-          echo "Backport PR #${PR}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # 4) Auto‑approve the PR via GH CLI (satisfy “require review”)
-      - name: Approve backport PR
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+      # 3) Merge develop into main and push
+      - name: Merge develop → main
         run: |
-          PR="${{ steps.create_pr.outputs['pull-request-number'] }}"
-          gh pr review "$PR" \
-            --repo "${{ github.repository }}" \
-            --approve \
-            --body "Auto‑approved for backport merge"
-
-      # 5) Enable GitHub’s Auto‑merge
-      - name: Enable auto-merge on backport PR
-        id: auto_merge
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GH_PAT }}
-          pull-request-number: ${{ steps.create_pr.outputs['pull-request-number'] }}
-          merge-method: merge
-
-      # 6) Fallback: force-merge via GH CLI if auto‑merge is blocked
-      - name: Fallback merge via GH CLI
-        if: ${{ steps.auto_merge.outcome != 'success' }}
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: |
-          PR="${{ steps.create_pr.outputs['pull-request-number'] }}"
-          echo "Auto‑merge blocked; falling back to GH CLI merge for PR #${PR}"
-          gh pr merge "$PR" \
-            --repo "${{ github.repository }}" \
-            --merge \
-            --admin
+          # Use the GITHUB_TOKEN for push
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git fetch origin main
+          git checkout main
+          git merge origin/develop --no-edit
+          git push origin main
