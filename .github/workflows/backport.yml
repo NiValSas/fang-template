@@ -50,7 +50,7 @@ jobs:
 
       # 5) Auto-approve the PR (satisfies review requirement)
       - name: Auto-approve backport PR
-        uses: peter-evans/approve-pull-request@v3
+        uses: peter-evans/approve-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.pr.outputs.pull-request-number }}
