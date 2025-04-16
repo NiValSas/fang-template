@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout develop (full history)
+      # 1) Checkout develop with full history
       - name: Checkout develop
         uses: actions/checkout@v3
         with:
@@ -26,7 +26,7 @@ jobs:
         id: create_pr
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ secrets.GH_PAT }}              # ← Your PAT with repo scope
           commit-message: "chore: backport changes from develop to main"
           title: "Backport develop → main"
           body: |
@@ -36,13 +36,13 @@ jobs:
           delete-branch: true
           draft: false
 
-      # 3) Debug: show the new PR number
+      # 3) Debug: print the PR number
       - name: Debug PR number
         run: |
           PR="${{ steps.create_pr.outputs['pull-request-number'] }}"
           echo "Backport PR #${PR}"
 
-      # 4) Approve via GH CLI (satisfy review requirement)
+      # 4) Auto‑approve the PR via GH CLI (satisfy “require review”)
       - name: Approve backport PR
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
@@ -50,9 +50,10 @@ jobs:
           PR="${{ steps.create_pr.outputs['pull-request-number'] }}"
           gh pr review "$PR" \
             --repo "${{ github.repository }}" \
-            --approve
+            --approve \
+            --body "Auto‑approved for backport merge"
 
-      # 5) Attempt to enable GitHub’s Auto‑merge
+      # 5) Enable GitHub’s Auto‑merge
       - name: Enable auto-merge on backport PR
         id: auto_merge
         uses: peter-evans/enable-pull-request-automerge@v3
@@ -61,13 +62,14 @@ jobs:
           pull-request-number: ${{ steps.create_pr.outputs['pull-request-number'] }}
           merge-method: merge
 
-      # 6) Fallback: force-merge via GH CLI if auto‑merge was blocked
+      # 6) Fallback: force-merge via GH CLI if auto‑merge is blocked
       - name: Fallback merge via GH CLI
         if: ${{ steps.auto_merge.outcome != 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           PR="${{ steps.create_pr.outputs['pull-request-number'] }}"
+          echo "Auto‑merge blocked; falling back to GH CLI merge for PR #${PR}"
           gh pr merge "$PR" \
             --repo "${{ github.repository }}" \
             --merge \
