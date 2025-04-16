@@ -1,0 +1,19 @@
+name: Validate Branch Name
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check branch name
+        run: |
+          branch_name=$(echo "${GITHUB_REF##*/}")
+          if [[ ! "$branch_name" =~ ^(feature|fix|hotfix)\/.+ ]]; then
+            echo "Error: The branch name must start with 'feature/', 'fix/', or 'hotfix/'."
+            exit 1
+          fi
