@@ -41,11 +41,15 @@ jobs:
                 exit 1
             fi
 
+      - name: List files in current directory
+        run: ls -alh
+
       - name: Archive artifact
         run: |
-            echo ::group::Archive artifact
-                tar --create --file="$RUNNER_TEMP/artifact.tar" path/to/directory/bandit-report.html
-            echo ::endgroup::
+              echo ::group::Archive artifact
+              tar --create --file="$RUNNER_TEMP/artifact.tar" bandit-report.html
+              echo ::endgroup::
+
       - name: Install Safety
         run: pip install safety
 
@@ -56,5 +60,5 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           name: bandit-report
-          path: path/to/directory/bandit-report.html
+          path: bandit-report.html
           retention-days: 1
