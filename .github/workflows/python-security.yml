@@ -47,6 +47,7 @@ jobs:
       - name: Archive artifact
         run: |
               echo ::group::Archive artifact
+              # Aquí aseguramos que el archivo sea correctamente archivado.
               tar --create --file="$RUNNER_TEMP/artifact.tar" bandit-report.html
               echo ::endgroup::
 
