@@ -10,15 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Validar formato de la rama
-      run: |
-        # obtenemos el nombre completo de la rama (p.ej. feature/fix-backport)
-        branch_name=${GITHUB_REF#refs/heads/}
-        echo "Branch name is '$branch_name'"
-    
-        if [[ ! "$branch_name" =~ ^(feature|fix|hotfix)/.+ ]]; then
-          echo "Error: El nombre de la rama debe empezar con 'feature/', 'fix/' o 'hotfix/'."
-          exit 1
-        fi
-    
-        echo "✅ El nombre de la rama cumple el patrón."
+      - name: Validate branch name format
+        run: |
+          # For PR events, use the head ref; otherwise, strip 'refs/heads/'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            branch_name="${{ github.head_ref }}"
+          else
+            branch_name="${GITHUB_REF#refs/heads/}"
+          fi
+
+          echo "Branch name is '$branch_name'"
+
+          if [[ ! "$branch_name" =~ ^(feature|fix|hotfix)/.+ ]]; then
+            echo "Error: Branch name must start with 'feature/', 'fix/', or 'hotfix/'."
+            exit 1
+          fi
+
+          echo "✅ Branch name meets the required pattern."
