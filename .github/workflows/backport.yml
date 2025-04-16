@@ -1,4 +1,4 @@
-name: Sync develop → main on push
+name: Auto Sync Develop to Main
 
 on:
   push:
@@ -8,18 +8,23 @@ on:
 jobs:
   sync-main:
     runs-on: ubuntu-latest
+
     steps:
+      # 1) Checkout develop with full history
       - name: Checkout develop
         uses: actions/checkout@v3
         with:
+          ref: develop
           fetch-depth: 0
 
+      # 2) Configure Git user for Actions
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge develop into main and push
+      # 3) Merge develop → main and push directly to main
+      - name: Merge develop → main & push
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git fetch origin main
