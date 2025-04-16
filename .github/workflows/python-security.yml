@@ -43,19 +43,18 @@ jobs:
 
       - name: Archive artifact
         run: |
-              echo ::group::Archive artifact
-              tar --create --file="$RUNNER_TEMP/artifact.tar" bandit-report.html
-              echo ::endgroup::
-
+            echo ::group::Archive artifact
+                tar --create --file="$RUNNER_TEMP/artifact.tar" path/to/directory/bandit-report.html
+            echo ::endgroup::
       - name: Install Safety
         run: pip install safety
 
       - name: Run Safety for vulnerability check
         run: safety check --full-report
 
-      - name: Upload Bandit report as artifact (GitHub Pages)
+      - name: Upload Bandit report as artifact
         uses: actions/upload-pages-artifact@v3
         with:
           name: bandit-report
-          path: bandit-report.html
+          path: path/to/directory/bandit-report.html
           retention-days: 1
