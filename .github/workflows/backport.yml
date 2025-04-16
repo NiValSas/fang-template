@@ -14,8 +14,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # … steps 1–4: checkout, configure git, create PR, debug PR number …
+      # 1) Checkout develop with full history
+      - name: Checkout develop
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+          fetch-depth: 0
 
+      # 2) Configure Git user
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 3) Create the backport Pull Request
       - name: Create backport PR
         id: backport_pr
         uses: peter-evans/create-pull-request@v5
@@ -24,27 +36,27 @@ jobs:
           commit-message: "chore: backport changes from develop to main"
           title: "Auto Backport: develop → main"
           body: |
-            This PR backports changes from `develop` into `main`.
+            This pull request was created automatically to backport changes from `develop` into `main`.
           base: main
           branch: backport/develop-into-main-${{ github.run_number }}
           delete-branch: true
 
+      # 4) Debug: print the PR number
       - name: Debug PR number
         run: |
           PR_NUMBER="${{ steps.backport_pr.outputs['pull-request-number'] }}"
           echo "Backport PR #${PR_NUMBER}"
 
-      # Attempt auto‑merge (will fail if not enabled)
+      # 5) Attempt to enable GitHub’s Auto‑merge
       - name: Enable auto‑merge on backport PR
-        if: ${{ always() }}
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.backport_pr.outputs['pull-request-number'] }}
           merge-method: merge
 
-      # Fallback: Merge with GH CLI using PAT
-      - name: Fallback: merge PR via GH CLI
+      # 6) Fallback: if auto‑merge was disallowed, merge via GH CLI with a PAT
+      - name: Fallback:merge PR via GH CLI
         if: ${{ failure() }}
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
@@ -52,6 +64,6 @@ jobs:
           PR_NUMBER="${{ steps.backport_pr.outputs['pull-request-number'] }}"
           echo "Falling back to GH CLI merge for PR #${PR_NUMBER}"
           gh pr merge $PR_NUMBER \
-            --repo ${{ github.repository }} \
+            --repo="${{ github.repository }}" \
             --merge \
             --admin
