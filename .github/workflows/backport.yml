@@ -59,7 +59,7 @@ jobs:
           merge-method: merge
 
       # 6) Fallback: if auto‑merge was blocked, force merge via GH CLI with your PAT
-      - name: Fallback: force-merge via GH CLI
+      - name: Fallback:force-merge via GH CLI
         if: ${{ steps.auto_merge.outcome != 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
