@@ -1,33 +1,37 @@
-name: Auto Sync Develop to Main
+name: Deploy to EC2
 
 on:
   push:
     branches:
-      - develop
+      - main  # Se activará cuando se haga un push a la rama 'main'
 
 jobs:
-  sync-main:
+  deploy:
     runs-on: ubuntu-latest
 
+    env:
+      EC2_PUBLIC_IP: ${{ vars.EC2_PUBLIC_IP }}  # Usar la variable de IP pública de EC2
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Carga la clave privada SSH desde los secrets de GitHub
+
     steps:
-      # 1) Checkout develop with full history
-      - name: Checkout develop
-        uses: actions/checkout@v3
-        with:
-          ref: develop
-          fetch-depth: 0
+      # 1. Clonar el código desde el repositorio de GitHub
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      # 2) Configure Git user for Actions
-      - name: Configure Git
+      # 2. Configurar SSH utilizando la clave privada desde los secrets de GitHub
+      - name: Set up SSH
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p ~/.ssh  # Asegurarse de que el directorio ~/.ssh exista
+          echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa  # Guardar la clave privada SSH en el archivo correcto
+          chmod 600 ~/.ssh/id_rsa  # Asegurarse de que los permisos de la clave sean correctos
+          ssh-keyscan -H $EC2_PUBLIC_IP >> ~/.ssh/known_hosts  # Añadir la clave del host a known_hosts para evitar problemas de seguridad
 
-      # 3) Merge develop → main and push directly to main
-      - name: Merge develop → main & push
+      # 3. Desplegar a EC2
+      - name: Deploy to EC2
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git fetch origin main
-          git checkout main
-          git merge origin/develop --no-edit
-          git push origin main
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$EC2_PUBLIC_IP << 'EOF'  # Usamos 'ubuntu' como usuario
+            cd /home/ubuntu/fang-template  # Cambiar al directorio donde se encuentra el proyecto
+            git pull origin main  # Actualiza el código desde la rama 'main'
+            docker-compose down  # Detiene los contenedores existentes
+            docker-compose up -d  # Levanta los contenedores en segundo plano
+          EOF
