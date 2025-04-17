@@ -1,39 +1,32 @@
-name: Deploy to EC2
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    env:
-      EC2_PUBLIC_IP: ${{ vars.EC2_PUBLIC_IP }}        # REPOSITO RY VARIABLE
-      SSH_KEY:        ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # SECRET para la clave privada
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Show IP for debug
-        run: echo "Deploying to EC2 at $EC2_PUBLIC_IP"
-
-      - name: Set up SSH
+      - name: Deploy to EC2 (zero-downtime with Docker Swarm)
         run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$EC2_PUBLIC_IP << 'EOF'
+            set -e
 
-      - name: Deploy to EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@"$EC2_PUBLIC_IP" << 'EOF'
             cd /home/ubuntu/fang-template
             git pull origin main
-            # reconstruir y reiniciar el contenedor
-            sudo docker build -t fang-app .
-            sudo docker stop fang-app-container || true
-            sudo docker rm   fang-app-container || true
-            sudo docker run -d -p 8000:8000 --name fang-app-container fang-app
+
+            # 1) Asegurarnos de que Docker Swarm está inicializado
+            if ! sudo docker info --format '{{.Swarm.LocalNodeState}}' | grep -q active; then
+              sudo docker swarm init
+            fi
+
+            # 2) Construir y etiquetar la imagen
+            sudo docker build -t fang-app:latest .
+
+            # 3) Crear el servicio la primera vez
+            if ! sudo docker service ls | grep -q fang_app; then
+              sudo docker service create \
+                --name fang_app \
+                --replicas 2 \
+                --publish 8000:8000 \
+                fang-app:latest
+            else
+              # 4) Rolling update: un contenedor a la vez
+              sudo docker service update \
+                --image fang-app:latest \
+                --update-parallelism 1 \
+                --update-delay 10s \
+                fang_app
+            fi
           EOF
