@@ -3,10 +3,10 @@ name: Python Security Validation
 on:
   push:
     branches:
-      - develop
+      - main
   pull_request:
     branches:
-      - develop
+      - main
 
 jobs:
   security:
@@ -29,8 +29,35 @@ jobs:
       - name: Install Bandit
         run: pip install bandit
 
-      - name: Run Bandit for static security analysis
+      - name: Run Bandit for static security analysis (HTML)
         run: bandit -r . -f html -o bandit-report.html
+
+      - name: Check if bandit-report.html exists
+        run: |
+          if [ -f bandit-report.html ]; then
+            echo "✅ bandit-report.html generado correctamente"
+          else
+            echo "❌ No se encontró bandit-report.html"
+            exit 1
+          fi
+
+      - name: List files in current directory
+        run: ls -alh
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run Bandit for summary (JSON) and show in logs
+        run: |
+          bandit -r . -f json -o bandit.json
+          issues=$(jq '.metrics.NUM_ISSUES' bandit.json)
+          echo "⚠️ Bandit ha encontrado $issues incidencias."
+
+      - name: Añadir resumen de Bandit al Job summary
+        run: |
+          echo "## 🔒 Resumen de Bandit Security Scan" >> $GITHUB_STEP_SUMMARY
+          # Extrae las primeras incidencias del HTML y las inserta en el summary
+          grep -A2 "<tr class=\"issue\"" bandit-report.html | sed 's/^/> /' >> $GITHUB_STEP_SUMMARY
 
       - name: Install Safety
         run: pip install safety
@@ -43,3 +70,4 @@ jobs:
         with:
           name: bandit-report
           path: bandit-report.html
+          retention-days: 1

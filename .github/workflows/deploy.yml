@@ -3,26 +3,56 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # Se activará cuando se haga un push a la rama 'main'
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    env:
+      EC2_PUBLIC_IP: ${{ vars.EC2_PUBLIC_IP }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # La clave privada SSH que has almacenado en los secrets de GitHub
-
-      - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@<EC2_PUBLIC_IP> << 'EOF'
-            cd /path/to/your/project
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2 (zero-downtime with Docker Swarm)
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@"$EC2_PUBLIC_IP" << 'EOF'
+            set -e
+
+            cd /home/ubuntu/fang-template
             git pull origin main
-            docker-compose down
-            docker-compose up -d
+
+            # 1) Inicializar Swarm si es necesario
+            SWARM_STATE=$(sudo docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo inactive)
+            if [ "$SWARM_STATE" != "active" ]; then
+              sudo docker swarm init
+            fi
+
+            # 2) Construir y etiquetar la imagen
+            sudo docker build -t fang-app:latest .
+
+            # 3) Crear o actualizar el servicio con rolling‑update
+            if sudo docker service ls 2>/dev/null | grep -q fang_app; then
+              sudo docker service update \
+                --image fang-app:latest \
+                --update-parallelism 1 \
+                --update-delay 10s \
+                fang_app
+            else
+              sudo docker service create \
+                --name fang_app \
+                --replicas 2 \
+                --publish 8000:8000 \
+                fang-app:latest
+            fi
           EOF
