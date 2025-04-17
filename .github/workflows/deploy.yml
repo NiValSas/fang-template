@@ -3,35 +3,37 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # Se activará cuando se haga un push a la rama 'main'
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     env:
-      EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}  # Usar el secreto para la IP pública de EC2
-      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Usar el secreto para la clave privada SSH
+      EC2_PUBLIC_IP: ${{ vars.EC2_PUBLIC_IP }}        # REPOSITO RY VARIABLE
+      SSH_KEY:        ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # SECRET para la clave privada
 
     steps:
-      # 1. Clonar el código desde el repositorio de GitHub
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # 2. Configurar SSH utilizando la clave privada desde los secrets de GitHub
+      - name: Show IP for debug
+        run: echo "Deploying to EC2 at $EC2_PUBLIC_IP"
+
       - name: Set up SSH
         run: |
-          mkdir -p ~/.ssh  # Crear el directorio ~/.ssh si no existe
-          echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa  # Guardar la clave privada SSH en el archivo correcto
-          chmod 600 ~/.ssh/id_rsa  # Asegurarse de que los permisos de la clave sean correctos
-          ssh-keyscan -H $EC2_PUBLIC_IP >> ~/.ssh/known_hosts  # Añadir la clave del host de EC2 a known_hosts
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
 
-      # 3. Desplegar a EC2
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$EC2_PUBLIC_IP << 'EOF'  # Usamos 'ubuntu' como usuario
-            cd /home/ubuntu/fang-template  # Cambiar al directorio donde se encuentra el proyecto
-            git pull origin main  # Actualiza el código desde la rama 'main'
-            sudo docker-compose down  # Detiene los contenedores existentes
-            sudo docker-compose up -d  # Levanta los contenedores en segundo plano
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@"$EC2_PUBLIC_IP" << 'EOF'
+            cd /home/ubuntu/fang-template
+            git pull origin main
+            # reconstruir y reiniciar el contenedor
+            sudo docker build -t fang-app .
+            sudo docker stop fang-app-container || true
+            sudo docker rm   fang-app-container || true
+            sudo docker run -d -p 8000:8000 --name fang-app-container fang-app
           EOF
