@@ -9,10 +9,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # Usamos las variables de GitHub definidas en la sección de Variables
     env:
-      EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}  # Variable de entorno de GitHub Actions para la IP pública
-      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Carga la clave privada SSH desde los secrets de GitHub
+      # Usamos las variables de GitHub definidas en la sección de Variables
+      EC2_PUBLIC_IP: ${{ vars.EC2_PUBLIC_IP }}  # Usar la variable de IP pública de EC2
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Usamos el secreto para la clave privada SSH
 
     steps:
       # 1. Clonar el código desde el repositorio de GitHub
