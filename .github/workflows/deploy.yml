@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}  # La IP pública de tu instancia EC2 (puedes agregarla como variable de GitHub)
-      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # La clave privada SSH que subiste a GitHub Secrets
+      EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}  # Usar el secreto para la IP pública de EC2
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Usar el secreto para la clave privada SSH
 
     steps:
       # 1. Clonar el código desde el repositorio de GitHub
