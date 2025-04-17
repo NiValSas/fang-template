@@ -1,12 +1,38 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      EC2_PUBLIC_IP: ${{ vars.EC2_PUBLIC_IP }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
+
       - name: Deploy to EC2 (zero-downtime with Docker Swarm)
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$EC2_PUBLIC_IP << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@"$EC2_PUBLIC_IP" << 'EOF'
             set -e
 
             cd /home/ubuntu/fang-template
             git pull origin main
 
-            # 1) Asegurarnos de que Docker Swarm está inicializado
+            # 1) Inicializar Swarm si es necesario
             if ! sudo docker info --format '{{.Swarm.LocalNodeState}}' | grep -q active; then
               sudo docker swarm init
             fi
