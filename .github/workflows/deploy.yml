@@ -9,6 +9,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    # Usamos las variables de GitHub definidas en la sección de Variables
+    env:
+      EC2_PUBLIC_IP: ${{ vars.EC2_PUBLIC_IP }}  # Variable de entorno de GitHub Actions para la IP pública
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Carga la clave privada SSH desde los secrets de GitHub
+
     steps:
       # 1. Clonar el código desde el repositorio de GitHub
       - name: Checkout code
@@ -19,12 +24,11 @@ jobs:
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Carga la clave privada SSH desde los secrets de GitHub
-          ssh-passphrase: ${{ secrets.EC2_SSH_PASSPHRASE }}  # Carga la passphrase desde los secrets de GitHub
 
       # 3. Desplegar a EC2
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'  # Usamos el secreto para la IP pública
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@$EC2_PUBLIC_IP << 'EOF'  # Usamos la variable para la IP pública
             cd /home/ubuntu/fang-template  # Cambiar al directorio donde se encuentra el proyecto
             git pull origin main  # Actualiza el código desde la rama 'main'
             docker-compose down  # Detiene los contenedores existentes
