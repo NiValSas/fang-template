@@ -33,26 +33,26 @@ jobs:
             git pull origin main
 
             # 1) Inicializar Swarm si es necesario
-            if ! sudo docker info --format '{{.Swarm.LocalNodeState}}' | grep -q active; then
+            SWARM_STATE=$(sudo docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo inactive)
+            if [ "$SWARM_STATE" != "active" ]; then
               sudo docker swarm init
             fi
 
             # 2) Construir y etiquetar la imagen
             sudo docker build -t fang-app:latest .
 
-            # 3) Crear el servicio la primera vez
-            if ! sudo docker service ls | grep -q fang_app; then
-              sudo docker service create \
-                --name fang_app \
-                --replicas 2 \
-                --publish 8000:8000 \
-                fang-app:latest
-            else
-              # 4) Rolling update: un contenedor a la vez
+            # 3) Crear o actualizar el servicio con rolling‑update
+            if sudo docker service ls 2>/dev/null | grep -q fang_app; then
               sudo docker service update \
                 --image fang-app:latest \
                 --update-parallelism 1 \
                 --update-delay 10s \
                 fang_app
+            else
+              sudo docker service create \
+                --name fang_app \
+                --replicas 2 \
+                --publish 8000:8000 \
+                fang-app:latest
             fi
           EOF
