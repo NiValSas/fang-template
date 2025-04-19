@@ -15,7 +15,7 @@ def create_app() -> FastAPI:
     # Base route
     @app.get("/")
     def read_root():
-        return {"message": "Fang project is running with automatic deploy by Innome And Hexe!"}
+        return {"message": "Fang project is running with automatic deploy by Innome 𓆉"}
 
     # Include routers
     # app.include_router()
