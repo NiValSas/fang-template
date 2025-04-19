@@ -31,7 +31,7 @@ jobs:
       # 3. Deploy to EC2 (with Git user + token)
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$EC2_PUBLIC_IP << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$EC2_PUBLIC_IP << EOF
             # Set Git identity
             git config --global user.name "$GIT_USER"
             git config --global user.email "$GIT_USER@users.noreply.github.com"
