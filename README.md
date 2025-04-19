@@ -1,6 +1,3 @@
-# fang-template
- Fang project template
-
 # Fang Template Project
 
 This is a template for a FastAPI project that includes common structure and configurations for fast development and best practices. 
